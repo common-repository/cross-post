@@ -1,0 +1,221 @@
+<html>
+<head>
+  <title>CrossPost Documentation</title>
+  <style>
+  pre {
+    background: #ccc;
+    padding: 1em;
+    border: 1px solid #999;
+  }
+  
+  dt {
+    font-weight: bold;
+  }
+  </style>
+</head>
+<body>
+
+<h1>
+  Overview
+</h1>
+
+<p>
+  Cross-post is a WordPress MU plugin that allows posts from one blog to be displayed, or cross posted, to other blogs managed within the same instance of MU. The posts are not duplicated to achieve this.
+</p>
+
+<p>
+  To use cross posts you must designate which blogs a post is to appear in as well as update templates to include a specialized loop that pulls in cross posts from other blogs. There is a side bar portlet to assist in selecting blogs to cross post to. Adding the specialized loop will require some PHP coding. I would have liked to not reuqire any template changes but under the deadline I had I was unable to figure out a way of transparently hooking The Loop. The changes are not dramatic and should work with existing Loop code. The main thing is changing the call to query_posts to query_cross_posts wherever you want to pull in cross posted stories into a template. Anyway, more below...
+</p>
+
+<h1>
+Installing Cross Posts
+</h1>
+
+<p>
+  Install in the normal way. Place it in the standard WordPress plugins directory (not the MU Plugins directory). Go into WordPress and activate it for all blogs that should participate in cross posting.
+</p>
+
+<p>
+  To run the unit tests that come with the cross post plugin you will need to install <a href="http://www.simpletest.org/">SimpleTest</a>.
+</p>
+
+<p>
+Once SimpleTest is installed you can execute the tests by going to the URL:
+<p>
+
+<pre>
+  http://&lt;your_site&gt;/wp-content/plugins/cross-post/tests/tests.php
+</pre>
+
+<p>
+Or whatever your path is to the "tests/tests.php" file in the cross-post plugin directory.
+</p>
+
+<h1>
+  Configuring the Cross Post Plugin
+</h1>
+
+<p>
+  To create a cross post you must first set up which blogs are participating in the cross posting as available targets for a post. You do this in the WordPress "options" tab in the "cross post options" sub menu.
+</p>
+
+<img src="images/options.jpg" />
+
+<p>
+   Each participating blog is added to the option box as a single line. The format for the line is:
+</p>
+
+<pre>
+  blog_id section_code Display name
+</pre>
+
+<p>
+Example:
+</p>
+
+<pre>
+  3 books Book Reviews
+</pre>
+
+<p>
+  Each field is seperated by a space. #blog_id and section_code may not contain spaces. Only the first two spaces matter so go ahead and use spaces in the display name field. The fields are:
+</p>
+
+<dl>
+  <dt>blog_id
+  </dt>
+  <dd>The numeric ID of a blog.
+  <dt>section_code</dt>
+  <dd>This is a bit of cruft from our own site requirements. We are a news paper and need to have this extra bit of data for internal purposes. You can fill in any text as long as it does not contain spaces. This field is why I used a text area rather than just create a list of all blogs in MU with check boxes.
+  </dd>
+  <dt>Display name</dt>
+  <dd>A brief name to be displayed in the selection widget. Usually just the name of the blog.
+  </dd>
+</dl>
+
+<p>
+  All fields are required.
+</p>
+
+<p>
+You can find the id of a blog by going to the administrative interface and selecting:
+</p>
+
+<pre>
+  "Site Admin"->"Blogs"
+</pre>
+
+<h1>
+  Creating a Cross Post
+</h1>
+
+<p>
+  After configuring the blogs that should be made available for cross posts, simply go to the edit screen for a post. You will see a portlet in the right column labeled "Cross Posts". This portlet will display all of the blogs available for corss posting. Simply check the blogs you want this post to be displayed in.
+</p>
+
+<img src="images/portlet.jpg" />
+
+<p>
+Note that the current blog will not be presented in the list even if it is in the options for cross post. This is obviosly due to the fact that you can't cross post to the "parent" blog.
+</p>
+
+<p>
+  Once you save the post a meta-key will be created that records the blog ids in which the post will be displayed. The meta key will look something like this:
+</p>
+
+<img src="images/meta-key.jpg" />
+
+<p>
+To remove a post entirely from cross posting behavior simply delete this key.
+</p>
+
+<h1>
+  Adding Cross Posts to a Template
+</h1>
+
+<p>
+  The most basic way to pull cross posts into a blog is to use the new loop methods provided by the cross-post plugin. Simply change the following functions in your template to their cross post equivilants:
+</p>
+
+<pre>
+  query_posts -> query_cross_posts
+  have_posts -> have_cross_posts
+  the_post -> the_cross_post
+  the_permalink -> the_cross_post_permalink
+  get_permalink -> get_cross_post_permalink
+  get_post_meta -> get_cross_post_meta
+  the_sub_header -> the_cross_post_sub_header
+</pre>
+
+<p>
+  The API also includes some specialized functions for working with CSM content:
+</p>
+
+<pre>
+  get_cross_posts_top_story
+</pre>
+
+<p>
+  The get_cross_post_meta funtion takes the entire $post object rather than just the $post->ID. This is so that it can acquire the blog_id from the $post and call get_post_meta for the correct blog.
+</p>
+
+<p>
+  The Loop method the_cross_post will populate all of the usual Loop methods such as "the_title" with the proper data.
+</p>
+
+<p>
+  The query_cross_posts method can take several search modifiers:
+</p>
+
+<dl>
+  <dt>
+    author_name
+  </dt>
+  <dd>
+    set to the nice name of an author to query for. Example: author_name=joe
+  </dd>
+  <dt>
+    limit
+  </dt>
+  <dd>
+    limit the number of results. Example: limit=10
+  </dd>
+  <dt>
+  offset
+  </dt>
+  <dd>
+    return results starting at the offset post. Example: offset=11
+  </dd>
+  <dt>
+  cat
+  </dt>
+  <dd>
+    returns posts from the current blog that are in the specified category ID as well as all posts that are cross posted to the current blog. Examples: cat=883, cat=-883
+  </dd>
+  <dt>
+  cp_cat
+  </dt>
+  <dd>
+    returns posts from all blogs that are in the specified category name. Examples: cp_cat=people, cp_cat=-people
+  </dd>
+</dl>
+
+<p>
+  An example loop utilizing cross posts looks like this:
+</p>
+
+<pre>
+  &lt;?php query_cross_posts('author_name=eocarroll&showposts=5&offset=1'); ?&gt;
+  &lt;?php while (have_cross_posts()) : the_cross_post(); ?&gt;
+    &lt;p class="time-date"&gt;
+      &lt;?php the_time('m.d.y'); ?&gt;
+    &lt;/p&gt;
+    &lt;h4&gt;
+      &lt;a href="&lt;?php the_cross_post_permalink(); ?&gt;"&gt;
+        &lt;?php the_title(); ?&gt;
+      &lt;/a&gt;
+    &lt;/h4&gt;
+  &lt;?php endwhile; ?&gt;
+</pre>
+</body>
+</html>
